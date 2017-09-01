@@ -12,8 +12,10 @@ class Market(gym.Env):
 
 	metadata = {'render.modes': ['human']}
 
-	def __init__(self):
-		pass
+	def __init__(self, exchange, symbol):
+		self.exchange = exchange
+		markets = exchange.load_markets()
+		print(exchange.id, markets)
 
 	def _step(self, action):
 		pass
@@ -22,4 +24,10 @@ class Market(gym.Env):
 		pass
 
 	def _render(self, mode='human', close=False):
+		pass
+
+	def _close(self):
+		pass
+
+	def _seed(self):
 		pass
