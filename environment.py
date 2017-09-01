@@ -5,6 +5,11 @@ from gym.utils import seeding
 import ccxt
 
 class Market(gym.Env):
+	"""
+	How to subclass Env:
+	https://github.com/openai/gym/blob/master/gym/core.py
+	"""
+
 	metadata = {'render.modes': ['human']}
 
 	def __init__(self):
