@@ -4,6 +4,8 @@ import tensorflow.contrib.keras as keras
 class DRQN(object):
 	"""
 	Deep recurrent Q-network.
+
+	https://github.com/awjuliani/DeepRL-Agents/blob/master/Deep-Recurrent-Q-Network.ipynb
 	"""
 	def __init__(self):
 		pass
