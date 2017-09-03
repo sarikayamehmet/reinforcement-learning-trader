@@ -23,27 +23,27 @@ class OrderSpace(gym.Space):
 		pass
 
 	def sample(self):
-        """
-        Uniformly randomly sample a random element of this space
-        """
-        raise NotImplementedError
+		"""
+		Uniformly randomly sample a random element of this space
+		"""
+		raise NotImplementedError
 
-    def contains(self, x):
-        """
-        Return boolean specifying if x is a valid
-        member of this space
-        """
-        raise NotImplementedError
+	def contains(self, x):
+		"""
+		Return boolean specifying if x is a valid
+		member of this space
+		"""
+		raise NotImplementedError
 
-    def to_jsonable(self, sample_n):
-        """Convert a batch of samples from this space to a JSONable data type."""
-        # By default, assume identity is JSONable
-        return sample_n
+	def to_jsonable(self, sample_n):
+		"""Convert a batch of samples from this space to a JSONable data type."""
+		# By default, assume identity is JSONable
+		return sample_n
 
-    def from_jsonable(self, sample_n):
-        """Convert a JSONable data type to a batch of samples from this space."""
-        # By default, assume identity is JSONable
-        return sample_n
+	def from_jsonable(self, sample_n):
+		"""Convert a JSONable data type to a batch of samples from this space."""
+		# By default, assume identity is JSONable
+		return sample_n
 
 class MarketDataSpace(gym.Space):
 	"""
@@ -57,27 +57,27 @@ class MarketDataSpace(gym.Space):
 		pass
 
 	def sample(self):
-        """
-        Uniformly randomly sample a random element of this space
-        """
-        raise NotImplementedError
+		"""
+		Uniformly randomly sample a random element of this space
+		"""
+		raise NotImplementedError
 
-    def contains(self, x):
-        """
-        Return boolean specifying if x is a valid
-        member of this space
-        """
-        raise NotImplementedError
+	def contains(self, x):
+		"""
+		Return boolean specifying if x is a valid
+		member of this space
+		"""
+		raise NotImplementedError
 
-    def to_jsonable(self, sample_n):
-        """Convert a batch of samples from this space to a JSONable data type."""
-        # By default, assume identity is JSONable
-        return sample_n
+	def to_jsonable(self, sample_n):
+		"""Convert a batch of samples from this space to a JSONable data type."""
+		# By default, assume identity is JSONable
+		return sample_n
 
-    def from_jsonable(self, sample_n):
-        """Convert a JSONable data type to a batch of samples from this space."""
-        # By default, assume identity is JSONable
-        return sample_n
+	def from_jsonable(self, sample_n):
+		"""Convert a JSONable data type to a batch of samples from this space."""
+		# By default, assume identity is JSONable
+		return sample_n
 
 class Market(gym.Env):
 	"""
@@ -105,6 +105,8 @@ class Market(gym.Env):
 	The methods are accessed publicly as "step", "reset", etc.. The
 	non-underscored versions are wrapper methods to which we may add
 	functionality over time.
+
+	TODO: Look at the mountain_car and continuous_mountain_car envs for reference.
 	"""
 
 	metadata = {
@@ -115,7 +117,8 @@ class Market(gym.Env):
 	# https://gym.openai.com/docs
 	action_space = OrderSpace()
 	observation_space = MarketDataSpace()
-	reward_range = (-np.inf, np.inf) # Do I want to 2x or 10x penalize losses?
+	reward_range = (-np.inf, np.inf)
+	# Do I want to add a multiplier to negative rewards to penalize losses?
 
 	def __init__(self, exchange, symbol):
 		# Set the seed for the environment's random number generator.
