@@ -5,6 +5,34 @@ from gym.utils import seeding
 import numpy as np
 import ccxt
 
+class OrderSpace(gym.Space):
+	"""
+	Action space for the Market environment.
+
+	- place order (binary): place order or do nothing
+	- type (binary): 'market' or 'limit'
+	- side (binary): 'buy' or 'sell'
+	- amount (float): how much to trade (could be in base or quote, check API)
+	- price (float): for limit orders only
+
+	TODO: Do I want to specify a max order size (ie. amount per trade)? Either
+	way, the amount must be constrained to what I hold in either the base or
+	quote currency.
+	"""
+	def __init__(self, max_order_size=None):
+		pass
+
+class MarketDataSpace(gym.Space):
+	"""
+	Observation space for the Market environment.
+
+	- order book (2-dimensional continuous)
+	- market price? https://github.com/kroitor/ccxt/wiki/Manual#market-price
+	- price ticker? https://github.com/kroitor/ccxt/wiki/Manual#price-tickers
+	"""
+	def __init__(self):
+		pass
+
 class Market(gym.Env):
 	"""
 	The main OpenAI Gym class. It encapsulates an environment with
@@ -39,8 +67,8 @@ class Market(gym.Env):
 
 	# Action and observation spaces.
 	# https://gym.openai.com/docs
-	action_space = None
-	observation_space = None
+	action_space = OrderSpace()
+	observation_space = MarketDataSpace()
 	reward_range = (-np.inf, np.inf) # Do I want to 2x or 10x penalize losses?
 
 	def __init__(self, exchange, symbol):
@@ -142,31 +170,3 @@ class Market(gym.Env):
 		"""
 		self.np_random, seed = seeding.np_random(seed)
 		return [seed]
-
-class OrderSpace(gym.Space):
-	"""
-	Action space for the Market environment.
-
-	- place order (binary): place order or do nothing
-	- type (binary): 'market' or 'limit'
-	- side (binary): 'buy' or 'sell'
-	- amount (float): how much to trade (could be in base or quote, check API)
-	- price (float): for limit orders only
-
-	TODO: Do I want to specify a max order size (ie. amount per trade)? Either
-	way, the amount must be constrained to what I hold in either the base or
-	quote currency.
-	"""
-	def __init__(self, max_order_size=None):
-		pass
-
-class MarketDataSpace(gym.Space):
-	"""
-	Observation space for the Market environment.
-
-	- order book (2-dimensional continuous)
-	- market price? https://github.com/kroitor/ccxt/wiki/Manual#market-price
-	- price ticker? https://github.com/kroitor/ccxt/wiki/Manual#price-tickers
-	"""
-	def __init__(self):
-		pass
