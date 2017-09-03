@@ -22,16 +22,62 @@ class OrderSpace(gym.Space):
 	def __init__(self, max_order_size=None):
 		pass
 
+	def sample(self):
+        """
+        Uniformly randomly sample a random element of this space
+        """
+        raise NotImplementedError
+
+    def contains(self, x):
+        """
+        Return boolean specifying if x is a valid
+        member of this space
+        """
+        raise NotImplementedError
+
+    def to_jsonable(self, sample_n):
+        """Convert a batch of samples from this space to a JSONable data type."""
+        # By default, assume identity is JSONable
+        return sample_n
+
+    def from_jsonable(self, sample_n):
+        """Convert a JSONable data type to a batch of samples from this space."""
+        # By default, assume identity is JSONable
+        return sample_n
+
 class MarketDataSpace(gym.Space):
 	"""
 	Observation space for the Market environment.
 
-	- order book (2-dimensional continuous)
+	- order book (2-dimensional continuous): is this the Box gym space?
 	- market price? https://github.com/kroitor/ccxt/wiki/Manual#market-price
 	- price ticker? https://github.com/kroitor/ccxt/wiki/Manual#price-tickers
 	"""
 	def __init__(self):
 		pass
+
+	def sample(self):
+        """
+        Uniformly randomly sample a random element of this space
+        """
+        raise NotImplementedError
+
+    def contains(self, x):
+        """
+        Return boolean specifying if x is a valid
+        member of this space
+        """
+        raise NotImplementedError
+
+    def to_jsonable(self, sample_n):
+        """Convert a batch of samples from this space to a JSONable data type."""
+        # By default, assume identity is JSONable
+        return sample_n
+
+    def from_jsonable(self, sample_n):
+        """Convert a JSONable data type to a batch of samples from this space."""
+        # By default, assume identity is JSONable
+        return sample_n
 
 class Market(gym.Env):
 	"""
