@@ -37,15 +37,23 @@ class Market(gym.Env):
 		'render.modes': ['human', 'ansi']
 	}
 
+	# Action and observation spaces.
+	# https://gym.openai.com/docs
 	action_space = None
 	observation_space = None
 	reward_range = (-np.inf, np.inf) # Do I want to 2x or 10x penalize losses?
 
 	def __init__(self, exchange, symbol):
+		# Set the seed for the environment's random number generator.
 		self.seed()
+
+		# Load the cryptocurrency exchange.
 		self.exchange = exchange
-		markets = exchange.load_markets()
-		#print(exchange.id, markets)
+		self.markets = exchange.load_markets()
+		self.symbol = symbol
+
+		# for method in (dir (exchange)):
+		# 	print(method)
 
 	def _step(self, action):
 		"""
@@ -61,7 +69,7 @@ class Market(gym.Env):
 			done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
 			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 		"""
-		pass
+		self.exchange.fetch_order_book(self.symbol)
 
 	def _reset(self):
 		"""
@@ -135,9 +143,30 @@ class Market(gym.Env):
 		self.np_random, seed = seeding.np_random(seed)
 		return [seed]
 
-class MarketSpace(gym.Space):
+class OrderSpace(gym.Space):
 	"""
-	https://gym.openai.com/docs
+	Action space for the Market environment.
+
+	- place order (binary): place order or do nothing
+	- type (binary): 'market' or 'limit'
+	- side (binary): 'buy' or 'sell'
+	- amount (float): how much to trade (could be in base or quote, check API)
+	- price (float): for limit orders only
+
+	TODO: Do I want to specify a max order size (ie. amount per trade)? Either
+	way, the amount must be constrained to what I hold in either the base or
+	quote currency.
+	"""
+	def __init__(self, max_order_size=None):
+		pass
+
+class MarketDataSpace(gym.Space):
+	"""
+	Observation space for the Market environment.
+
+	- order book (2-dimensional continuous)
+	- market price? https://github.com/kroitor/ccxt/wiki/Manual#market-price
+	- price ticker? https://github.com/kroitor/ccxt/wiki/Manual#price-tickers
 	"""
 	def __init__(self):
 		pass
