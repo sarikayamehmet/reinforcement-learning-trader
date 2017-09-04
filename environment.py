@@ -22,7 +22,7 @@ class OrderSpace(gym.Space):
 	The highest price on the order book will be the max_price. Should this
 	update over time? Seems like a bad idea to have a changing control space.
 
-	Also need to build in certain limits.
+	TODO: Also need to build in certain limits.
 	- Cannot place a limit sell order lower than the market price.
 	- Cannot place a limit buy order higher than the market price.
 	"""
@@ -51,13 +51,11 @@ class OrderSpace(gym.Space):
 
 	def to_jsonable(self, sample_n):
 		"""Convert a batch of samples from this space to a JSONable data type."""
-		# By default, assume identity is JSONable
-		return sample_n
+		raise NotImplementedError
 
 	def from_jsonable(self, sample_n):
 		"""Convert a JSONable data type to a batch of samples from this space."""
-		# By default, assume identity is JSONable
-		return sample_n
+		raise NotImplementedError
 
 class MarketDataSpace(gym.Space):
 	"""
@@ -85,13 +83,11 @@ class MarketDataSpace(gym.Space):
 
 	def to_jsonable(self, sample_n):
 		"""Convert a batch of samples from this space to a JSONable data type."""
-		# By default, assume identity is JSONable
-		return sample_n
+		raise NotImplementedError
 
 	def from_jsonable(self, sample_n):
 		"""Convert a JSONable data type to a batch of samples from this space."""
-		# By default, assume identity is JSONable
-		return sample_n
+		raise NotImplementedError
 
 class Market(gym.Env):
 	"""
