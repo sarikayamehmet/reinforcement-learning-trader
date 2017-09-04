@@ -25,6 +25,25 @@ class OrderSpace(gym.Space):
 	TODO: Also need to build in certain limits.
 	- Cannot place a limit sell order lower than the market price.
 	- Cannot place a limit buy order higher than the market price.
+
+	How do I do this without changing the control space? Should I normalize
+	the price so that it is a percentage between -100 percent and 100 percent
+	of the current price?
+
+	If limit buy, [-1, 0)
+	If limit sell, (0, 1]
+	If market order, 0
+
+	Or more simply, (0, 1]. Multiply by 1 if sell, by -1 if buy.
+
+		side_sign*(1-prng.np_random.random())
+
+	With this system, no need for max_price.
+
+	Can the amount also be set this way? As a proportion of my holdings in the
+	base or quote currency? Intuition says no, since the base amount and quote
+	amount can be different so the same percentage can represent different
+	amounts when buying or selling.
 	"""
 	def __init__(self, max_amount, max_price):
 		self.max_amount = max_amount
