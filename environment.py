@@ -1,7 +1,7 @@
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
-from gym.spaces import prng
+from gym.spaces import Box
 
 import numpy as np
 import ccxt
@@ -14,7 +14,7 @@ class OrderSpace(gym.Space):
 	- type (binary): 'market' or 'limit'
 	- side (binary): 'buy' or 'sell'
 	- amount (float): how much to trade (could be in base or quote, check API)
-	- price (float): for limit orders only
+	- price (float): percentage of current market price (for limit orders only)
 
 	The amount must be constrained to what I hold in either the base or
 	quote currency. This is the max_amount.
@@ -36,7 +36,7 @@ class OrderSpace(gym.Space):
 
 	Or more simply, (0, 1]. Multiply by 1 if sell, by -1 if buy.
 
-		side_sign*(1-prng.np_random.random())
+		side_sign[side]*(1-prng.np_random.random())
 
 	With this system, no need for max_price.
 
@@ -44,54 +44,26 @@ class OrderSpace(gym.Space):
 	base or quote currency? Intuition says no, since the base amount and quote
 	amount can be different so the same percentage can represent different
 	amounts when buying or selling.
+
+	TODO: Need to add cancelling an existing order to the control space.
 	"""
-	def __init__(self, max_amount, max_price):
+
+	side_sign = {'buy': -1, 'sell': 1}
+
+	def __init__(self, max_amount):
 		self.max_amount = max_amount
-		self.max_price = max_price
 
 	def sample(self):
 		"""
 		Uniformly randomly sample a random element of this space
 		"""
-		self.place_order = prng.np_random.choice([True, False])
-		self.type = prng.np_random.choice(['market', 'limit'])
-		self.side = prng.np_random.choice(['buy', 'sell'])
-		self.amount = prng.np_random.uniform(low=0, high=self.max_amount)
-		self.price = prng.np_random.uniform(low=0, high=self.max_price)
+		self.place_order = np.random.choice([True, False])
+		self.type = np.random.choice(['market', 'limit'])
+		self.side = np.random.choice(['buy', 'sell'])
+		self.amount = np.random.uniform(low=0, high=self.max_amount)
+		self.price = self.side_sign[self.side]*(1-np.random.random_sample())
 
 		return [self.place_order, self.type, self.side, self.amount, self.price]
-
-	def contains(self, x):
-		"""
-		Return boolean specifying if x is a valid
-		member of this space
-		"""
-		raise NotImplementedError
-
-	def to_jsonable(self, sample_n):
-		"""Convert a batch of samples from this space to a JSONable data type."""
-		raise NotImplementedError
-
-	def from_jsonable(self, sample_n):
-		"""Convert a JSONable data type to a batch of samples from this space."""
-		raise NotImplementedError
-
-class MarketDataSpace(gym.Space):
-	"""
-	Observation space for the Market environment.
-
-	- order book (2-dimensional continuous): is this the Box gym space?
-	- market price? https://github.com/kroitor/ccxt/wiki/Manual#market-price
-	- price ticker? https://github.com/kroitor/ccxt/wiki/Manual#price-tickers
-	"""
-	def __init__(self):
-		pass
-
-	def sample(self):
-		"""
-		Uniformly randomly sample a random element of this space
-		"""
-		raise NotImplementedError
 
 	def contains(self, x):
 		"""
@@ -157,11 +129,23 @@ class Market(gym.Env):
 
 		# Action and observation spaces.
 		# https://gym.openai.com/docs
-		action_space = OrderSpace(max_amount=1.0, max_price=2.0)
-		observation_space = MarketDataSpace()
+		action_space = OrderSpace(max_amount=1.0) # TODO: figure out how to set max_amount
+		
+		"""
+		The observation space is just the order book.
+		Bids are an arbitrarily-long list of entries between [0.0, 0.0] and [np.inf, np.inf]
+		Asks are an arbitrarily-long list of entries between [0.0, 0.0] and [np.inf, np.inf]
 
-		# for method in (dir (exchange)):
-		# 	print(method)
+		- order book [[float (0, inf), float (0, inf), int (0, inf)]
+		- market price from orderbook? or do I need the VWAP?
+
+		orderbook = exchange.fetch_order_book (exchange.symbols[0])
+		bid = orderbook['bids'][0][0] if len (orderbook['bids']) > 0 else None
+		ask = orderbook['asks'][0][0] if len (orderbook['asks']) > 0 else None
+		spread = (ask - bid) if (bid and ask) else None
+		print (exchange.id, 'market price', { 'bid': bid, 'ask': ask, 'spread': spread })
+		"""
+		observation_space = Box(np.array([0,0.0,0.0]), np.array([np.inf, np.inf, np.inf]))
 
 	def _step(self, action):
 		"""
