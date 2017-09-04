@@ -17,12 +17,18 @@ class OrderSpace(gym.Space):
 	- price (float): for limit orders only
 
 	The amount must be constrained to what I hold in either the base or
-	quote currency.
+	quote currency. This is the max_amount.
+
+	The highest price on the order book will be the max_price. Should this
+	update over time? Seems like a bad idea to have a changing control space.
+
+	Also need to build in certain limits.
+	- Cannot place a limit sell order lower than the market price.
+	- Cannot place a limit buy order higher than the market price.
 	"""
 	def __init__(self, max_amount, max_price):
 		self.max_amount = max_amount
 		self.max_price = max_price
-		self.sample()
 
 	def sample(self):
 		"""
@@ -33,6 +39,8 @@ class OrderSpace(gym.Space):
 		self.side = prng.np_random.choice(['buy', 'sell'])
 		self.amount = prng.np_random.uniform(low=0, high=self.max_amount)
 		self.price = prng.np_random.uniform(low=0, high=self.max_price)
+
+		return [self.place_order, self.type, self.side, self.amount, self.price]
 
 	def contains(self, x):
 		"""
