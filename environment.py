@@ -114,22 +114,22 @@ class Market(gym.Env):
 		'render.modes': ['human', 'ansi']
 	}
 
-	
+	# Set the reward range.
+	# TODO: add a multiplier to negative rewards to penalize losses?
 	reward_range = (-np.inf, np.inf)
-	# Do I want to add a multiplier to negative rewards to penalize losses?
 
 	def __init__(self, exchange, symbol):
-		# Set the seed for the environment's random number generator.
-		self.seed()
-
 		# Load the cryptocurrency exchange.
 		self.exchange = exchange
 		self.markets = exchange.load_markets()
 		self.symbol = symbol
 
+		# Set the max amount (in BTC) per trade.
+		# TODO: figure out what to set for max_amount
+		self.max_amount = 1.0
+
 		# Action and observation spaces.
-		# https://gym.openai.com/docs
-		action_space = OrderSpace(max_amount=1.0) # TODO: figure out how to set max_amount
+		action_space = OrderSpace(max_amount=self.max_amount)
 		
 		"""
 		The observation space is just the order book.
@@ -147,6 +147,12 @@ class Market(gym.Env):
 		"""
 		observation_space = Box(np.array([0,0.0,0.0]), np.array([np.inf, np.inf, np.inf]))
 
+		# Set the seed for the environment's random number generator.
+		self.seed()
+
+		# Reset the environment.
+		print self.reset()
+
 	def _step(self, action):
 		"""
 		Run one timestep of the environment's dynamics. When end of
@@ -161,15 +167,21 @@ class Market(gym.Env):
 			done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
 			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 		"""
-		self.exchange.fetch_order_book(self.symbol)
+		pass
 
 	def _reset(self):
 		"""
 		Resets the state of the environment and returns an initial observation.
-		Returns: observation (object): the initial observation of the
-			space.
+		Returns: observation (object): the initial observation of the space.
+		
+		TODO: return an array representing the order book
 		"""
-		pass
+		order_book = self.exchange.fetch_order_book(self.symbol)
+		# FIXME: figure out how to set the orderbook as one array
+		# - reverse order of bids and concatenate with asks?
+		# - how to make sure system understands difference between bids and asks?
+		self.state = np.array(order_book['bids'], order_book['asks'])
+		return np.array(self.state)
 
 	def _render(self, mode='human', close=False):
 		"""
