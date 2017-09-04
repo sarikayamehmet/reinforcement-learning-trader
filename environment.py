@@ -1,6 +1,7 @@
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
+from gym.spaces import prng
 
 import numpy as np
 import ccxt
@@ -15,18 +16,23 @@ class OrderSpace(gym.Space):
 	- amount (float): how much to trade (could be in base or quote, check API)
 	- price (float): for limit orders only
 
-	TODO: Do I want to specify a max order size (ie. amount per trade)? Either
-	way, the amount must be constrained to what I hold in either the base or
+	The amount must be constrained to what I hold in either the base or
 	quote currency.
 	"""
-	def __init__(self, max_order_size=None):
-		pass
+	def __init__(self, max_amount, max_price):
+		self.max_amount = max_amount
+		self.max_price = max_price
+		self.sample()
 
 	def sample(self):
 		"""
 		Uniformly randomly sample a random element of this space
 		"""
-		raise NotImplementedError
+		self.place_order = prng.np_random.choice([True, False])
+		self.type = prng.np_random.choice(['market', 'limit'])
+		self.side = prng.np_random.choice(['buy', 'sell'])
+		self.amount = prng.np_random.uniform(low=0, high=self.max_amount)
+		self.price = prng.np_random.uniform(low=0, high=self.max_price)
 
 	def contains(self, x):
 		"""
@@ -113,10 +119,7 @@ class Market(gym.Env):
 		'render.modes': ['human', 'ansi']
 	}
 
-	# Action and observation spaces.
-	# https://gym.openai.com/docs
-	action_space = OrderSpace()
-	observation_space = MarketDataSpace()
+	
 	reward_range = (-np.inf, np.inf)
 	# Do I want to add a multiplier to negative rewards to penalize losses?
 
@@ -128,6 +131,11 @@ class Market(gym.Env):
 		self.exchange = exchange
 		self.markets = exchange.load_markets()
 		self.symbol = symbol
+
+		# Action and observation spaces.
+		# https://gym.openai.com/docs
+		action_space = OrderSpace(max_amount=1.0, max_price=2.0)
+		observation_space = MarketDataSpace()
 
 		# for method in (dir (exchange)):
 		# 	print(method)
