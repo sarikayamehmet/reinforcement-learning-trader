@@ -191,12 +191,18 @@ class Market(gym.Env):
 
 		asks = np.rot90(np.array(order_book['asks']), 3)
 
-		bids_with_sign = np.concatenate((bids, bid_sign), axis=0)
-		asks_with_sign = np.concatenate((asks, ask_sign), axis=0)
+		print "bids: ", bids.shape
+		print "bid_sign: ", bid_sign.shape
 
-		self.state = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
+		print "asks: ", asks.shape
+		print "ask_sign: ", ask_sign.shape
 
-		return self.state
+		# bids_with_sign = np.concatenate((bids, bid_sign), axis=0)
+		# asks_with_sign = np.concatenate((asks, ask_sign), axis=0)
+
+		# self.state = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
+
+		return #self.state
 
 	def _render(self, mode='human', close=False):
 		"""
