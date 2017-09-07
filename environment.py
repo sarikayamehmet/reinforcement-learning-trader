@@ -6,6 +6,8 @@ from gym.spaces import Box
 import numpy as np
 import ccxt
 
+#import matplotlib.pyplot as plt
+
 class OrderSpace(gym.Space):
 	"""
 	Action space for the Market environment.
@@ -180,8 +182,21 @@ class Market(gym.Env):
 		# FIXME: figure out how to set the orderbook as one array
 		# - reverse order of bids and concatenate with asks?
 		# - how to make sure system understands difference between bids and asks?
-		self.state = np.array(order_book['bids'], order_book['asks'])
-		return np.array(self.state)
+		# solution: add a cell for each entry with side_sign (bids: -1, asks: 1)
+
+		bid_sign = -1*np.ones(len(order_book['bids']))
+		ask_sign = np.ones(len(order_book['asks']))
+
+		bids = np.flipud(np.rot90(np.array(order_book['bids'])))
+
+		asks = np.rot90(np.array(order_book['asks']), 3)
+
+		bids_with_sign = np.concatenate((bids, bid_sign), axis=0)
+		asks_with_sign = np.concatenate((asks, ask_sign), axis=0)
+
+		self.state = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
+
+		return self.state
 
 	def _render(self, mode='human', close=False):
 		"""
