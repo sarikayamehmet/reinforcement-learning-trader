@@ -178,34 +178,30 @@ class Market(gym.Env):
 		
 		TODO: return an array representing the order book
 		"""
+		# Fetch the order book (dictionary) for our symbol.
 		order_book = self.exchange.fetch_order_book(self.symbol)
-		# FIXME: figure out how to set the orderbook as one array
-		# - reverse order of bids and concatenate with asks?
-		# - how to make sure system understands difference between bids and asks?
-		# solution: add a cell for each entry with side_sign (bids: -1, asks: 1)
 
+		# Put the bids and asks into separate arrays.
 		bids = np.array(order_book['bids'])
 		asks = np.array(order_book['asks'])
 
+		# Label the bids with -1 and the asks with 1.
 		bid_sign = -1*np.ones((len(order_book['bids']), 1))
 		ask_sign = np.ones((len(order_book['asks']), 1))
 
+		# Concatenate the bids and asks with their respective labels.
 		bids_with_sign = np.concatenate((bids, bid_sign), axis=1)
 		asks_with_sign = np.concatenate((asks, ask_sign), axis=1)
 
-		print "bids: ", bids.shape
-		print "bid_sign: ", bid_sign.shape
-		print "bids_with_sign: ", bids_with_sign.shape
-
-		print "asks: ", asks.shape
-		print "ask_sign: ", ask_sign.shape
-		print "asks_with_sign: ", asks_with_sign.shape
-
+		# Rotate and flip bids and asks so they can be concatenated as one array.
+		# This puts the array in ascending order by price.
 		bids_with_sign = np.flipud(np.rot90(bids_with_sign, 3))
 		asks_with_sign = np.rot90(asks_with_sign, 1)
 
+		# Concatenate the bids and asks.
 		self.state = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
 
+		# Return the concatenated array of bids and asks.
 		return self.state
 
 	def _render(self, mode='human', close=False):
