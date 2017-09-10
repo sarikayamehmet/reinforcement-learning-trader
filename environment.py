@@ -184,25 +184,29 @@ class Market(gym.Env):
 		# - how to make sure system understands difference between bids and asks?
 		# solution: add a cell for each entry with side_sign (bids: -1, asks: 1)
 
-		bid_sign = -1*np.ones(len(order_book['bids']))
-		ask_sign = np.ones(len(order_book['asks']))
+		bids = np.array(order_book['bids'])
+		asks = np.array(order_book['asks'])
 
-		bids = np.flipud(np.rot90(np.array(order_book['bids'])))
+		bid_sign = -1*np.ones((len(order_book['bids']), 1))
+		ask_sign = np.ones((len(order_book['asks']), 1))
 
-		asks = np.rot90(np.array(order_book['asks']), 3)
+		bids_with_sign = np.concatenate((bids, bid_sign), axis=1)
+		asks_with_sign = np.concatenate((asks, ask_sign), axis=1)
 
 		print "bids: ", bids.shape
 		print "bid_sign: ", bid_sign.shape
+		print "bids_with_sign: ", bids_with_sign.shape
 
 		print "asks: ", asks.shape
 		print "ask_sign: ", ask_sign.shape
+		print "asks_with_sign: ", asks_with_sign.shape
 
-		# bids_with_sign = np.concatenate((bids, bid_sign), axis=0)
-		# asks_with_sign = np.concatenate((asks, ask_sign), axis=0)
+		bids_with_sign = np.flipud(np.rot90(bids_with_sign, 3))
+		asks_with_sign = np.rot90(asks_with_sign, 1)
 
-		# self.state = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
+		self.state = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
 
-		return #self.state
+		return self.state
 
 	def _render(self, mode='human', close=False):
 		"""
