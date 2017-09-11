@@ -126,29 +126,7 @@ class Market(gym.Env):
 		# Reset the environment.
 		self.reset()
 
-	def _step(self, action):
-		"""
-		Run one timestep of the environment's dynamics. When end of
-		episode is reached, you are responsible for calling `reset()`
-		to reset this environment's state.
-		Accepts an action and returns a tuple (observation, reward, done, info).
-		Args:
-			action (object): an action provided by the environment
-		Returns:
-			observation (object): agent's observation of the current environment
-			reward (float) : amount of reward returned after previous action
-			done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
-			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
-		"""
-		pass
-
-	def _reset(self):
-		"""
-		Resets the state of the environment and returns an initial observation.
-
-		Returns: observation (object): the initial observation of the space. This
-		is an array representing the order book.
-		"""
+	def _observe(self):
 		# Fetch the order book (dictionary) for our symbol.
 		order_book = self.exchange.fetch_order_book(self.symbol)
 
@@ -174,6 +152,39 @@ class Market(gym.Env):
 
 		# Return the concatenated array of bids and asks.
 		return self.state
+
+	def _step(self, action):
+		"""
+		Run one timestep of the environment's dynamics. When end of
+		episode is reached, you are responsible for calling `reset()`
+		to reset this environment's state.
+		Accepts an action and returns a tuple (observation, reward, done, info).
+		Args:
+			action (object): an action provided by the environment
+		Returns:
+			observation (object): agent's observation of the current environment
+			reward (float) : amount of reward returned after previous action
+			done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
+			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
+		
+		TODO:
+		- How do I set the timestep for the environment? This value
+		  needs to be the same as the rate limit for the API.
+		- This method needs to do two things:
+			- Fetch the order book and save it to self.state.
+			- Evaluate the utility of any actions taken and ascribe a reward.
+		"""
+
+		pass
+
+	def _reset(self):
+		"""
+		Resets the state of the environment and returns an initial observation.
+
+		Returns: observation (object): the initial observation of the space. This
+		is an array representing the order book.
+		"""
+		return self._observe()
 
 	def _render(self, mode='human', close=False):
 		"""
