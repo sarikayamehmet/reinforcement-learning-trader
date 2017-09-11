@@ -13,7 +13,7 @@ class OrderSpace(gym.Space):
 	Action space for the Market environment.
 
 	- place order (binary): place order or do nothing
-	- type (binary): 'market' or 'limit'
+	- order type (binary): 'market' or 'limit'
 	- side (binary): 'buy' or 'sell'
 	- amount (float): how much to trade (could be in base or quote, check API)
 	- price (float): percentage of current market price (for limit orders only)
@@ -60,12 +60,12 @@ class OrderSpace(gym.Space):
 		Uniformly randomly sample a random element of this space
 		"""
 		self.place_order = np.random.choice([True, False])
-		self.type = np.random.choice(['market', 'limit'])
+		self.order_type = np.random.choice(['market', 'limit'])
 		self.side = np.random.choice(['buy', 'sell'])
 		self.amount = np.random.uniform(low=0, high=self.max_amount)
 		self.price = self.side_sign[self.side]*(1-np.random.random_sample())
 
-		return [self.place_order, self.type, self.side, self.amount, self.price]
+		return [self.place_order, self.order_type, self.side, self.amount, self.price]
 
 	def contains(self, x):
 		"""
@@ -81,6 +81,31 @@ class OrderSpace(gym.Space):
 	def from_jsonable(self, sample_n):
 		"""Convert a JSONable data type to a batch of samples from this space."""
 		raise NotImplementedError
+
+class Order(object):
+	"""
+	An object encapsulating an order.
+
+	TODO: override the hash for this object and set it to the order ID from
+		  the exchange. Keep a set of open orders in the Market, and can cancel
+		  orders using their ID this way.
+
+	FIXME: does this need to be an inner class of Market to access the
+	       exchange and symbol?
+	"""
+	def __init__(self, place_order, order_type, side, amount, price):
+		self.place_order = place_order
+		self.order_type = order_type
+		self.side = side
+		self.amount = amount
+		self.price = price
+
+	def execute(self):
+		if place_order:
+			if order_type == 'market':
+				self.exchange.create_order(self.symbol, self.order_type, self.amount)
+			else:
+				self.exchange.create_order(self.symbol, self.order_type, self.amount, self.price)
 
 class Market(gym.Env):
 	"""
