@@ -130,6 +130,11 @@ class Market(gym.Env):
 		# Fetch the order book (dictionary) for our symbol.
 		order_book = self.exchange.fetch_order_book(self.symbol)
 
+		# Calculate the market price.
+		bid = order_book['bids'][0][0] if len (order_book['bids']) > 0 else None
+		ask = order_book['asks'][0][0] if len (order_book['asks']) > 0 else None
+		spread = (ask - bid) if (bid and ask) else None
+
 		# Put the bids and asks into separate arrays.
 		bids = np.array(order_book['bids'])
 		asks = np.array(order_book['asks'])
@@ -148,10 +153,11 @@ class Market(gym.Env):
 		asks_with_sign = np.rot90(asks_with_sign, 1)
 
 		# Concatenate the bids and asks.
-		self.state = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
+		observation = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
 
 		# Return the concatenated array of bids and asks.
-		return self.state
+		# Also return the bid-ask spread.
+		return observation, bid, ask, spread
 
 	def _step(self, action):
 		"""
@@ -174,8 +180,18 @@ class Market(gym.Env):
 			- Fetch the order book and save it to self.state.
 			- Evaluate the utility of any actions taken and ascribe a reward.
 		"""
+		self.state, bid, ask, spread = self._observe()
 
-		pass
+		# The score is the total value of holdings, using BTC as the reference.
+		# Calculate the score as follows: (BTC in BTC wallet) + (amount of ALT
+		# held * value of ALT in BTC)
+		reward = None
+
+		done = None
+
+		info = {}
+
+		return self.state, reward, done, info
 
 	def _reset(self):
 		"""
@@ -184,7 +200,8 @@ class Market(gym.Env):
 		Returns: observation (object): the initial observation of the space. This
 		is an array representing the order book.
 		"""
-		return self._observe()
+		self.state = self._observe()[0]
+		return self.state
 
 	def _render(self, mode='human', close=False):
 		"""
