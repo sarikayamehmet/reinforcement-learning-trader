@@ -84,30 +84,10 @@ class OrderSpace(gym.Space):
 
 class Market(gym.Env):
 	"""
-	The main OpenAI Gym class. It encapsulates an environment with
-	arbitrary behind-the-scenes dynamics. An environment can be
-	partially or fully observed.
-	The main API methods that users of this class need to know are:
-		step
-		reset
-		render
-		close
-		seed
-	When implementing an environment, override the following methods
-	in your subclass:
-		_step
-		_reset
-		_render
-		_close
-		_seed
-	And set the following attributes:
-		action_space: The Space object corresponding to valid actions
-		observation_space: The Space object corresponding to valid observations
-		reward_range: A tuple corresponding to the min and max possible rewards
-	Note: a default reward range set to [-inf,+inf] already exists. Set it if you want a narrower range.
-	The methods are accessed publicly as "step", "reset", etc.. The
-	non-underscored versions are wrapper methods to which we may add
-	functionality over time.
+	Market subclasses the OpenAI Gym Env object. It encapsulates a market
+	environment, where the action space includes placing and cancelling orders,
+	and the observation space includes the order book retrieved at some sampling
+	rate. It is a partially observable environment.
 
 	TODO: Look at the mountain_car and continuous_mountain_car envs for reference.
 	"""
@@ -130,30 +110,21 @@ class Market(gym.Env):
 		# TODO: figure out what to set for max_amount
 		self.max_amount = 1.0
 
-		# Action and observation spaces.
-		action_space = OrderSpace(max_amount=self.max_amount)
+		# Set the action space. This is defined by the OrderSpace object.
+		self.action_space = OrderSpace(max_amount=self.max_amount)
 		
-		"""
-		The observation space is just the order book.
-		Bids are an arbitrarily-long list of entries between [0.0, 0.0] and [np.inf, np.inf]
-		Asks are an arbitrarily-long list of entries between [0.0, 0.0] and [np.inf, np.inf]
-
-		- order book [[float (0, inf), float (0, inf), int (0, inf)]
-		- market price from orderbook? or do I need the VWAP?
-
-		orderbook = exchange.fetch_order_book (exchange.symbols[0])
-		bid = orderbook['bids'][0][0] if len (orderbook['bids']) > 0 else None
-		ask = orderbook['asks'][0][0] if len (orderbook['asks']) > 0 else None
-		spread = (ask - bid) if (bid and ask) else None
-		print (exchange.id, 'market price', { 'bid': bid, 'ask': ask, 'spread': spread })
-		"""
-		observation_space = Box(np.array([0,0.0,0.0]), np.array([np.inf, np.inf, np.inf]))
+		# Set the observation space. This is the order book. It includes the following:
+		# An arbitrarily long number of columns, where each column has:
+		# - A discrete variable {-1, 1} indicating a bid or an ask.
+		# - A continuous variable [0, inf) for the price.
+		# - A continuous variable [0, inf) for the quantity.
+		self.observation_space = Box(np.array([0,0.0,0.0]), np.array([np.inf, np.inf, np.inf]))
 
 		# Set the seed for the environment's random number generator.
 		self.seed()
 
 		# Reset the environment.
-		print self.reset()
+		self.reset()
 
 	def _step(self, action):
 		"""
@@ -174,9 +145,9 @@ class Market(gym.Env):
 	def _reset(self):
 		"""
 		Resets the state of the environment and returns an initial observation.
-		Returns: observation (object): the initial observation of the space.
-		
-		TODO: return an array representing the order book
+
+		Returns: observation (object): the initial observation of the space. This
+		is an array representing the order book.
 		"""
 		# Fetch the order book (dictionary) for our symbol.
 		order_book = self.exchange.fetch_order_book(self.symbol)
