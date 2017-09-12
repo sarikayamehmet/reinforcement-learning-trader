@@ -89,23 +89,28 @@ class Order(object):
 	TODO: override the hash for this object and set it to the order ID from
 		  the exchange. Keep a set of open orders in the Market, and can cancel
 		  orders using their ID this way.
-
-	FIXME: does this need to be an inner class of Market to access the
-	       exchange and symbol?
 	"""
-	def __init__(self, place_order, order_type, side, amount, price):
+	def __init__(self, exchange, symbol, place_order, order_type, side, amount, price):
 		self.place_order = place_order
 		self.order_type = order_type
 		self.side = side
 		self.amount = amount
 		self.price = price
 
-	def execute(self):
+	def place(self):
 		if place_order:
 			if order_type == 'market':
 				self.exchange.create_order(self.symbol, self.order_type, self.amount)
 			else:
 				self.exchange.create_order(self.symbol, self.order_type, self.amount, self.price)
+		# TODO: return order ID and store it as property, also make it hash
+
+	def cancel(self):
+		self.exchange.cancel_order(self.id)
+
+	def __str__(self):
+		return self.id
+
 
 class Market(gym.Env):
 	"""
