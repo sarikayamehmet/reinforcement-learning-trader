@@ -17,37 +17,6 @@ class OrderSpace(gym.Space):
 	- side (binary): 'buy' or 'sell'
 	- amount (float): how much to trade (could be in base or quote, check API)
 	- price (float): percentage of current market price (for limit orders only)
-
-	The amount must be constrained to what I hold in either the base or
-	quote currency. This is the max_amount.
-
-	The highest price on the order book will be the max_price. Should this
-	update over time? Seems like a bad idea to have a changing control space.
-
-	TODO: Also need to build in certain limits.
-	- Cannot place a limit sell order lower than the market price.
-	- Cannot place a limit buy order higher than the market price.
-
-	How do I do this without changing the control space? Should I normalize
-	the price so that it is a percentage between -100 percent and 100 percent
-	of the current price?
-
-	If limit buy, [-1, 0)
-	If limit sell, (0, 1]
-	If market order, 0
-
-	Or more simply, (0, 1]. Multiply by 1 if sell, by -1 if buy.
-
-		side_sign[side]*(1-prng.np_random.random())
-
-	With this system, no need for max_price.
-
-	Can the amount also be set this way? As a proportion of my holdings in the
-	base or quote currency? Intuition says no, since the base amount and quote
-	amount can be different so the same percentage can represent different
-	amounts when buying or selling.
-
-	TODO: Need to add cancelling an existing order to the control space.
 	"""
 
 	side_sign = {'buy': -1, 'sell': 1}
@@ -85,13 +54,11 @@ class OrderSpace(gym.Space):
 class Order(object):
 	"""
 	An object encapsulating an order.
-
-	TODO: override the hash for this object and set it to the order ID from
-		  the exchange. Keep a set of open orders in the Market, and can cancel
-		  orders using their ID this way.
 	"""
 	def __init__(self, exchange, symbol, place_order, order_type, side, amount, price):
 		# Set the attributes of the order.
+		self.exchange = exchange
+		self.symbol = symbol
 		self.place_order = place_order
 		self.order_type = order_type
 		self.side = side
@@ -123,6 +90,9 @@ class Order(object):
 	def __str__(self):
 		return self.id
 
+	def __repr__(self):
+		return 
+
 
 class Market(gym.Env):
 	"""
@@ -130,8 +100,6 @@ class Market(gym.Env):
 	environment, where the action space includes placing and cancelling orders,
 	and the observation space includes the order book retrieved at some sampling
 	rate. It is a partially observable environment.
-
-	TODO: Look at the mountain_car and continuous_mountain_car envs for reference.
 	"""
 
 	metadata = {
@@ -139,7 +107,6 @@ class Market(gym.Env):
 	}
 
 	# Set the reward range.
-	# TODO: add a multiplier to negative rewards to penalize losses?
 	reward_range = (-np.inf, np.inf)
 
 	def __init__(self, exchange, symbol):
@@ -149,7 +116,6 @@ class Market(gym.Env):
 		self.symbol = symbol
 
 		# Set the max amount (in BTC) per trade.
-		# TODO: figure out what to set for max_amount
 		self.max_amount = 1.0
 
 		# Set the action space. This is defined by the OrderSpace object.
@@ -214,19 +180,10 @@ class Market(gym.Env):
 			reward (float) : amount of reward returned after previous action
 			done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
 			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
-		
-		TODO:
-		- How do I set the timestep for the environment? This value
-		  needs to be the same as the rate limit for the API.
-		- This method needs to do two things:
-			- Fetch the order book and save it to self.state.
-			- Evaluate the utility of any actions taken and ascribe a reward.
 		"""
 		self.state, bid, ask, spread = self._observe()
 
 		# The score is the total value of holdings, using BTC as the reference.
-		# Calculate the score as follows: (BTC in BTC wallet) + (amount of ALT
-		# held * value of ALT in BTC)
 		reward = None
 
 		done = None
