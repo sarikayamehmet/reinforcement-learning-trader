@@ -91,19 +91,31 @@ class Order(object):
 		  orders using their ID this way.
 	"""
 	def __init__(self, exchange, symbol, place_order, order_type, side, amount, price):
+		# Set the attributes of the order.
 		self.place_order = place_order
 		self.order_type = order_type
 		self.side = side
 		self.amount = amount
 		self.price = price
+		# Initialize the order ID to None.
+		self.id = None
 
 	def place(self):
+		# If the place_order boolean is true, place an order on the exchange.
 		if place_order:
+			# If it's a market order, create an order without specifying a price.
 			if order_type == 'market':
-				self.exchange.create_order(self.symbol, self.order_type, self.amount)
+				order_info = self.exchange.create_order(self.symbol, self.order_type, self.amount)
+			# Otherwise, include the price in the order.
 			else:
-				self.exchange.create_order(self.symbol, self.order_type, self.amount, self.price)
-		# TODO: return order ID and store it as property, also make it hash
+				order_info = self.exchange.create_order(self.symbol, self.order_type, self.amount, self.price)
+			# Save the order ID returned from calling create_order.
+			self.id = order_info['id']
+		# If place_order is false, return None for the order ID.
+		else:
+			self.id = None
+		# Return the order ID.
+		return self.id
 
 	def cancel(self):
 		self.exchange.cancel_order(self.id)
