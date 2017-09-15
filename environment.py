@@ -51,6 +51,41 @@ class OrderSpace(gym.Space):
 		"""Convert a JSONable data type to a batch of samples from this space."""
 		raise NotImplementedError
 
+class MarketDataSpace(gym.Space):
+	"""
+	Observation space for the Market environment.
+
+	An arbitrarily long number of columns, where each column has:
+	- A discrete variable {-1, 1} indicating a bid or an ask.
+	- A continuous variable [0, inf) for the price.
+	- A continuous variable [0, inf) for the quantity.
+	"""
+
+	def __init__(self):
+		pass
+
+	def sample(self):
+		"""
+		Uniformly randomly sample a random element of this space
+		"""
+		raise NotImplementedError
+
+	def contains(self, x):
+		"""
+		Return boolean specifying if x is a valid
+		member of this space
+		"""
+		raise NotImplementedError
+
+	def to_jsonable(self, sample_n):
+		"""Convert a batch of samples from this space to a JSONable data type."""
+		raise NotImplementedError
+
+	def from_jsonable(self, sample_n):
+		"""Convert a JSONable data type to a batch of samples from this space."""
+		raise NotImplementedError
+
+
 class Order(object):
 	"""
 	An object encapsulating an order.
