@@ -152,6 +152,7 @@ class Market(gym.Env):
 		# Load the cryptocurrency exchange.
 		self.exchange = exchange
 		self.markets = exchange.load_markets()
+		self.balance = exchange.fetch_balance()
 		self.symbol = symbol
 
 		# Set the max amount (in BTC) per trade.
@@ -221,18 +222,28 @@ class Market(gym.Env):
 			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 		"""
 
-		# Process the action. It should come in the format [place_order, order_type, side, amount, price].
+		# Process the action.
+
+		## It should come in the format [place_order, order_type, side, amount, price].
 		place_order, order_type, side, amount, price = action
 
-		# Create an Order object from the action.
+		## Create an Order object from the action.
 		order = Order(self.exchange, self.symbol, place_order, order_type, side, amount, price)
 
-		# Place the order.
+		## Place the order.
 		order_id = order.place()
 
-		# Calculate the reward for the action.
-		# The reward is the amount that the total holdings changed during the timestep, measured in BTC.
-		reward = None
+		# Calculate the reward.
+
+		## Fetch the current balance of BTC.
+		current_balance = self.exchange.fetch_balance()
+		current_BTC = current_balance['BTC']['total']
+
+		## Get the balance of BTC before this timestep.
+		previous_BTC = self.balance['BTC']['total']
+
+		## Calculate the reward by finding the change in BTC balance during this timestep.
+		reward = current_BTC - previous_BTC
 
 		# Determine whether the episode has ended.
 		done = None
