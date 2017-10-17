@@ -202,7 +202,7 @@ class Market(gym.Env):
 		# Concatenate the bids and asks.
 		observation = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
 
-		# Return the concatenated array of bids and asks.
+		# Return the concatenated array of bids and asks (observation).
 		# Also return the bid-ask spread.
 		return observation, bid, ask, spread
 
@@ -213,22 +213,31 @@ class Market(gym.Env):
 		to reset this environment's state.
 		Accepts an action and returns a tuple (observation, reward, done, info).
 		Args:
-			action (object): an action provided by the environment
+			action (object): an action provided by the agent
 		Returns:
 			observation (object): agent's observation of the current environment
 			reward (float) : amount of reward returned after previous action
 			done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
 			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 		"""
-		self.state, bid, ask, spread = self._observe()
 
+		# Process the action.
+		# ...
+
+		# Calculate the reward for the action.
 		# The score is the total value of holdings, using BTC as the reference.
 		reward = None
 
+		# Determine whether the episode has ended.
 		done = None
 
+		# Observe the state of the environment.
+		self.state, bid, ask, spread = self._observe()
+
+		# Save diagnostic information for debugging.
 		info = {}
 
+		# Return the results of the agents action during the timestep.
 		return self.state, reward, done, info
 
 	def _reset(self):
