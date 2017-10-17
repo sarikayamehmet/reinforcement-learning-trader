@@ -62,13 +62,15 @@ class MarketDataSpace(gym.Space):
 	"""
 
 	def __init__(self):
-		pass
+		self.sample()
 
 	def sample(self):
 		"""
 		Uniformly randomly sample a random element of this space
 		"""
-		raise NotImplementedError
+		self.side_sign = np.random.choice([-1, 1])
+		self.price = np.random.uniform(low=0, high=np.inf)
+		self.quantity = np.random.uniform(low=0, high=np.inf)
 
 	def contains(self, x):
 		"""
@@ -161,7 +163,7 @@ class Market(gym.Env):
 		# - A discrete variable {-1, 1} indicating a bid or an ask.
 		# - A continuous variable [0, inf) for the price.
 		# - A continuous variable [0, inf) for the quantity.
-		self.observation_space = Box(np.array([0,0.0,0.0]), np.array([np.inf, np.inf, np.inf]))
+		self.observation_space = MarketDataSpace()
 
 		# Set the seed for the environment's random number generator.
 		self.seed()
