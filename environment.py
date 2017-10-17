@@ -62,15 +62,17 @@ class MarketDataSpace(gym.Space):
 	"""
 
 	def __init__(self):
-		self.sample()
+		# self.sample()
+		pass
 
 	def sample(self):
 		"""
 		Uniformly randomly sample a random element of this space
 		"""
-		self.side_sign = np.random.choice([-1, 1])
-		self.price = np.random.uniform(low=0, high=np.inf)
-		self.quantity = np.random.uniform(low=0, high=np.inf)
+		# self.side_sign = np.random.choice([-1, 1])
+		# self.price = np.random.uniform(low=0, high=np.inf)
+		# self.quantity = np.random.uniform(low=0, high=np.inf)
+		raise NotImplementedError
 
 	def contains(self, x):
 		"""
