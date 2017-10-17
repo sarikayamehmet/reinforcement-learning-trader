@@ -221,11 +221,17 @@ class Market(gym.Env):
 			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 		"""
 
-		# Process the action. The action will be an Order object, and processing it means calling `place()`.
-		# ...
+		# Process the action. It should come in the format [place_order, order_type, side, amount, price].
+		place_order, order_type, side, amount, price = action
+
+		# Create an Order object from the action.
+		order = Order(self.exchange, self.symbol, place_order, order_type, side, amount, price)
+
+		# Place the order.
+		order_id = order.place()
 
 		# Calculate the reward for the action.
-		# The score is the total value of holdings, using BTC as the reference.
+		# The reward is the amount that the total holdings changed during the timestep, measured in BTC.
 		reward = None
 
 		# Determine whether the episode has ended.
@@ -236,6 +242,7 @@ class Market(gym.Env):
 
 		# Save diagnostic information for debugging.
 		info = {}
+		info['order_id'] = order_id
 
 		# Return the results of the agents action during the timestep.
 		return self.state, reward, done, info
