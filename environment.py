@@ -221,7 +221,7 @@ class Market(gym.Env):
 			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 		"""
 
-		# Process the action.
+		# Process the action. The action will be an Order object, and processing it means calling `place()`.
 		# ...
 
 		# Calculate the reward for the action.
