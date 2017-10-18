@@ -108,14 +108,20 @@ class Order(object):
 
 	def place(self):
 		# If the place_order boolean is true, place an order on the exchange.
-		if place_order:
+		if self.place_order:
 			# If it's a market order, create an order without specifying a price.
-			if order_type == 'market':
-				order_info = self.exchange.create_order(self.symbol, self.order_type, self.amount)
+			if self.order_type == 'market':
+				if self.side == 'buy':
+					order_info = self.exchange.create_market_buy_order(self.symbol, self.amount)
+				if self.side == 'sell':
+					order_info = self.exchange.create_market_sell_order(self.symbol, self.amount)
 			# Otherwise, include the price in the order.
-			else:
-				order_info = self.exchange.create_order(self.symbol, self.order_type, self.amount, self.price)
-			# Save the order ID returned from calling create_order.
+			if self.order_type == 'limit':
+				if self.side == 'buy':
+					order_info = self.exchange.create_limit_buy_order(self.symbol, self.amount, self.price)
+				if self.side == 'sell':
+					order_info = self.exchange.create_limit_sell_order(self.symbol, self.amount, self.price)
+			# Save the order ID returned from placing the order.
 			self.id = order_info['id']
 		# If place_order is false, return None for the order ID.
 		else:
@@ -229,7 +235,7 @@ class Market(gym.Env):
 
 		# Process the action.
 		## Ensure it's a valid action.
-		assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
+		#assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
 
 		## It should come in the format [place_order, order_type, side, amount, price].
 		place_order, order_type, side, amount, price = action
@@ -247,18 +253,22 @@ class Market(gym.Env):
 		## Fetch the current balance of BTC.
 		current_balance = self.exchange.fetch_balance()
 		current_BTC = current_balance['BTC']['total']
-		# If there's no balance, replace None with 0.
+		### If there's no balance, replace None with 0.
 		if current_BTC is None:
 			current_BTC = 0
 
 		## Get the balance of BTC before this timestep.
 		previous_BTC = self.previous_balance['BTC']['total']
-		# If there's no balance, replace None with 0.
+		### If there's no balance, replace None with 0.
 		if previous_BTC is None:
 			previous_BTC = 0
 
-		## Calculate the reward by finding the percent change in BTC balance during this timestep.
-		reward = (current_BTC - previous_BTC)/previous_BTC
+		## If the previous BTC balance was 0, the reward is the current BTC balance.
+		if previous_BTC == 0:
+			reward = current_BTC
+		## Else, calculate the reward by finding the percent change in BTC balance during this timestep.
+		else:
+			reward = (current_BTC - previous_BTC)/previous_BTC
 
 		# Determine when the episode ends.
 		done = False
