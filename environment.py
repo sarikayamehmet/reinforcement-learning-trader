@@ -53,7 +53,7 @@ class OrderSpace(gym.Space):
 
 class MarketDataSpace(gym.Space):
 	"""
-	Observation space for the Market environment.
+	Observation space for the Market environment. (The order book.)
 
 	An arbitrarily long number of columns, where each column has:
 	- A discrete variable {-1, 1} indicating a bid or an ask.
@@ -155,17 +155,19 @@ class Market(gym.Env):
 		self.balance = exchange.fetch_balance()
 		self.symbol = symbol
 
-		# Set the max amount (in BTC) per trade.
-		self.max_amount = 1.0
+		# Save the starting BTC balance.
+		self.starting_BTC = self.balance['BTC']['total']
+
+		# Set the goals.
+		## What multiplier should be considered 'success'?
+		self.success_metric = 1.05*self.starting_BTC
+		## What multiplier should be considered 'failure'?
+		self.failure_metric = 0.5*self.starting_BTC
 
 		# Set the action space. This is defined by the OrderSpace object.
-		self.action_space = OrderSpace(max_amount=self.max_amount)
+		self.action_space = OrderSpace(max_amount=self.starting_BTC)
 		
-		# Set the observation space. This is the order book. It includes the following:
-		# An arbitrarily long number of columns, where each column has:
-		# - A discrete variable {-1, 1} indicating a bid or an ask.
-		# - A continuous variable [0, inf) for the price.
-		# - A continuous variable [0, inf) for the quantity.
+		# Set the observation space. This is defined by the MarketDataSpace object.
 		self.observation_space = MarketDataSpace()
 
 		# Set the seed for the environment's random number generator.
@@ -223,6 +225,8 @@ class Market(gym.Env):
 		"""
 
 		# Process the action.
+		## Ensure it's a valid action.
+		assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
 
 		## It should come in the format [place_order, order_type, side, amount, price].
 		place_order, order_type, side, amount, price = action
@@ -233,8 +237,10 @@ class Market(gym.Env):
 		## Place the order.
 		order_id = order.place()
 
-		# Calculate the reward.
+		# Observe the state of the environment.
+		self.state, bid, ask, spread = self._observe()
 
+		# Calculate the reward.
 		## Fetch the current balance of BTC.
 		current_balance = self.exchange.fetch_balance()
 		current_BTC = current_balance['BTC']['total']
@@ -242,14 +248,19 @@ class Market(gym.Env):
 		## Get the balance of BTC before this timestep.
 		previous_BTC = self.balance['BTC']['total']
 
-		## Calculate the reward by finding the change in BTC balance during this timestep.
-		reward = current_BTC - previous_BTC
+		## Calculate the reward by finding the percent change in BTC balance during this timestep.
+		reward = (current_BTC - previous_BTC)/previous_BTC
 
-		# Determine whether the episode has ended.
-		done = None
-
-		# Observe the state of the environment.
-		self.state, bid, ask, spread = self._observe()
+		# The episode ends when the BTC balance goes below the failure metric or above the success metric.
+		done = False
+		## Double the penalty when all BTC is lost.
+		if (current_BTC <= self.failure_metric):
+			done = True
+			reward -= 1
+		## 
+		if (current_BTC >= self.success_metric):
+			done = True
+			reward += 1
 
 		# Save diagnostic information for debugging.
 		info = {}
