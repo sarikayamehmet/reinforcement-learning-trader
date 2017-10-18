@@ -53,7 +53,7 @@ class OrderSpace(gym.Space):
 
 class MarketDataSpace(gym.Space):
 	"""
-	Observation space for the Market environment.
+	Observation space for the Market environment. (The order book.)
 
 	An arbitrarily long number of columns, where each column has:
 	- A discrete variable {-1, 1} indicating a bid or an ask.
@@ -108,14 +108,20 @@ class Order(object):
 
 	def place(self):
 		# If the place_order boolean is true, place an order on the exchange.
-		if place_order:
+		if self.place_order:
 			# If it's a market order, create an order without specifying a price.
-			if order_type == 'market':
-				order_info = self.exchange.create_order(self.symbol, self.order_type, self.amount)
+			if self.order_type == 'market':
+				if self.side == 'buy':
+					order_info = self.exchange.create_market_buy_order(self.symbol, self.amount)
+				if self.side == 'sell':
+					order_info = self.exchange.create_market_sell_order(self.symbol, self.amount)
 			# Otherwise, include the price in the order.
-			else:
-				order_info = self.exchange.create_order(self.symbol, self.order_type, self.amount, self.price)
-			# Save the order ID returned from calling create_order.
+			if self.order_type == 'limit':
+				if self.side == 'buy':
+					order_info = self.exchange.create_limit_buy_order(self.symbol, self.amount, self.price)
+				if self.side == 'sell':
+					order_info = self.exchange.create_limit_sell_order(self.symbol, self.amount, self.price)
+			# Save the order ID returned from placing the order.
 			self.id = order_info['id']
 		# If place_order is false, return None for the order ID.
 		else:
@@ -152,19 +158,25 @@ class Market(gym.Env):
 		# Load the cryptocurrency exchange.
 		self.exchange = exchange
 		self.markets = exchange.load_markets()
+		self.previous_balance = exchange.fetch_balance()
 		self.symbol = symbol
 
-		# Set the max amount (in BTC) per trade.
-		self.max_amount = 1.0
+		# Save the starting BTC balance.
+		self.starting_BTC = self.previous_balance['BTC']['total']
+		# If there's no balance, replace None with 0.
+		if self.starting_BTC is None:
+			self.starting_BTC = 0
+
+		# Set the goals.
+		## What multiplier should be considered 'success'?
+		self.success_metric = 1.05*self.starting_BTC
+		## What multiplier should be considered 'failure'?
+		self.failure_metric = 0.5*self.starting_BTC
 
 		# Set the action space. This is defined by the OrderSpace object.
-		self.action_space = OrderSpace(max_amount=self.max_amount)
+		self.action_space = OrderSpace(max_amount=self.starting_BTC)
 		
-		# Set the observation space. This is the order book. It includes the following:
-		# An arbitrarily long number of columns, where each column has:
-		# - A discrete variable {-1, 1} indicating a bid or an ask.
-		# - A continuous variable [0, inf) for the price.
-		# - A continuous variable [0, inf) for the quantity.
+		# Set the observation space. This is defined by the MarketDataSpace object.
 		self.observation_space = MarketDataSpace()
 
 		# Set the seed for the environment's random number generator.
@@ -202,7 +214,7 @@ class Market(gym.Env):
 		# Concatenate the bids and asks.
 		observation = np.concatenate((bids_with_sign, asks_with_sign), axis=1)
 
-		# Return the concatenated array of bids and asks.
+		# Return the concatenated array of bids and asks (observation).
 		# Also return the bid-ask spread.
 		return observation, bid, ask, spread
 
@@ -213,22 +225,72 @@ class Market(gym.Env):
 		to reset this environment's state.
 		Accepts an action and returns a tuple (observation, reward, done, info).
 		Args:
-			action (object): an action provided by the environment
+			action (object): an action provided by the agent
 		Returns:
 			observation (object): agent's observation of the current environment
 			reward (float) : amount of reward returned after previous action
 			done (boolean): whether the episode has ended, in which case further step() calls will return undefined results
 			info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
 		"""
+
+		# Process the action.
+		## Ensure it's a valid action.
+		#assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
+
+		## It should come in the format [place_order, order_type, side, amount, price].
+		place_order, order_type, side, amount, price = action
+
+		## Create an Order object from the action.
+		order = Order(self.exchange, self.symbol, place_order, order_type, side, amount, price)
+
+		## Place the order.
+		order_id = order.place()
+
+		# Observe the state of the environment.
 		self.state, bid, ask, spread = self._observe()
 
-		# The score is the total value of holdings, using BTC as the reference.
-		reward = None
+		# Calculate the reward.
+		## Fetch the current balance of BTC.
+		current_balance = self.exchange.fetch_balance()
+		current_BTC = current_balance['BTC']['total']
+		### If there's no balance, replace None with 0.
+		if current_BTC is None:
+			current_BTC = 0
 
-		done = None
+		## Get the balance of BTC before this timestep.
+		previous_BTC = self.previous_balance['BTC']['total']
+		### If there's no balance, replace None with 0.
+		if previous_BTC is None:
+			previous_BTC = 0
 
+		## If the previous BTC balance was 0, the reward is the current BTC balance.
+		if previous_BTC == 0:
+			reward = current_BTC
+		## Else, calculate the reward by finding the percent change in BTC balance during this timestep.
+		else:
+			reward = (current_BTC - previous_BTC)/previous_BTC
+
+		# Determine when the episode ends.
+		done = False
+		## If the BTC balance drops to the failure metric, end the episode and apply a penalty.
+		if (current_BTC <= self.failure_metric):
+			done = True
+			reward -= 1
+		## If the BTC balance rises to the success metric, end the episode and apply a bonus.
+		if (current_BTC >= self.success_metric):
+			done = True
+			reward += 1
+
+		# Save diagnostic information for debugging.
 		info = {}
+		info['order_id'] = order_id
+		info['previous_BTC'] = previous_BTC
+		info['current_BTC'] = current_BTC
 
+		# Save the current balance for the next step.
+		self.previous_balance = current_balance
+
+		# Return the results of the agents action during the timestep.
 		return self.state, reward, done, info
 
 	def _reset(self):
