@@ -157,6 +157,9 @@ class Market(gym.Env):
 
 		# Save the starting BTC balance.
 		self.starting_BTC = self.previous_balance['BTC']['total']
+		# If there's no balance, replace None with 0.
+		if self.starting_BTC is None:
+			self.starting_BTC = 0
 
 		# Set the goals.
 		## What multiplier should be considered 'success'?
@@ -244,9 +247,15 @@ class Market(gym.Env):
 		## Fetch the current balance of BTC.
 		current_balance = self.exchange.fetch_balance()
 		current_BTC = current_balance['BTC']['total']
+		# If there's no balance, replace None with 0.
+		if current_BTC is None:
+			current_BTC = 0
 
 		## Get the balance of BTC before this timestep.
 		previous_BTC = self.previous_balance['BTC']['total']
+		# If there's no balance, replace None with 0.
+		if previous_BTC is None:
+			previous_BTC = 0
 
 		## Calculate the reward by finding the percent change in BTC balance during this timestep.
 		reward = (current_BTC - previous_BTC)/previous_BTC
