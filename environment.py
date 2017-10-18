@@ -152,11 +152,11 @@ class Market(gym.Env):
 		# Load the cryptocurrency exchange.
 		self.exchange = exchange
 		self.markets = exchange.load_markets()
-		self.balance = exchange.fetch_balance()
+		self.previous_balance = exchange.fetch_balance()
 		self.symbol = symbol
 
 		# Save the starting BTC balance.
-		self.starting_BTC = self.balance['BTC']['total']
+		self.starting_BTC = self.previous_balance['BTC']['total']
 
 		# Set the goals.
 		## What multiplier should be considered 'success'?
@@ -246,7 +246,7 @@ class Market(gym.Env):
 		current_BTC = current_balance['BTC']['total']
 
 		## Get the balance of BTC before this timestep.
-		previous_BTC = self.balance['BTC']['total']
+		previous_BTC = self.previous_balance['BTC']['total']
 
 		## Calculate the reward by finding the percent change in BTC balance during this timestep.
 		reward = (current_BTC - previous_BTC)/previous_BTC
@@ -265,6 +265,11 @@ class Market(gym.Env):
 		# Save diagnostic information for debugging.
 		info = {}
 		info['order_id'] = order_id
+		info['previous_BTC'] = previous_BTC
+		info['current_BTC'] = current_BTC
+
+		# Save the current balance for the next step.
+		self.previous_balance = current_balance
 
 		# Return the results of the agents action during the timestep.
 		return self.state, reward, done, info
