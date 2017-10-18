@@ -251,13 +251,13 @@ class Market(gym.Env):
 		## Calculate the reward by finding the percent change in BTC balance during this timestep.
 		reward = (current_BTC - previous_BTC)/previous_BTC
 
-		# The episode ends when the BTC balance goes below the failure metric or above the success metric.
+		# Determine when the episode ends.
 		done = False
-		## Double the penalty when all BTC is lost.
+		## If the BTC balance drops to the failure metric, end the episode and apply a penalty.
 		if (current_BTC <= self.failure_metric):
 			done = True
 			reward -= 1
-		## 
+		## If the BTC balance rises to the success metric, end the episode and apply a bonus.
 		if (current_BTC >= self.success_metric):
 			done = True
 			reward += 1
