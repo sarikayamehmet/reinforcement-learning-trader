@@ -11,14 +11,14 @@ class OrderSpace(gym.Space):
     - place order (binary): place order or do nothing
     - order type (binary): 'market' or 'limit'
     - side (binary): 'buy' or 'sell'
-    - amount (float): how much to trade (could be in base or quote, check API)
-    - price (float): percentage of current market price (for limit orders only)
+    - amount_proportion (float): proportion of holdings to trade (could be in base or quote, check the API)
+    - price_percentage (float): percentage of current market price (for limit orders only)
     """
 
     side_sign = {'buy': -1, 'sell': 1}
 
-    def __init__(self, max_amount):
-        self.max_amount = max_amount
+    def __init__(self):
+        pass
 
     def sample(self):
         """
@@ -27,10 +27,10 @@ class OrderSpace(gym.Space):
         self.place_order = np.random.choice([True, False])
         self.order_type = np.random.choice(['market', 'limit'])
         self.side = np.random.choice(['buy', 'sell'])
-        self.amount = np.random.uniform(low=0, high=self.max_amount)
-        self.price = self.side_sign[self.side]*(1-np.random.random_sample())
+        self.amount_proportion = np.random.uniform(low=0.0, high=1.0)
+        self.price_percentage = self.side_sign[self.side]*(1-np.random.random_sample())
 
-        return [self.place_order, self.order_type, self.side, self.amount, self.price]
+        return [self.place_order, self.order_type, self.side, self.amount_proportion, self.price_percentage]
 
     def contains(self, x):
         """
@@ -110,13 +110,13 @@ class Order(object):
             if self.order_type == 'market':
                 if self.side == 'buy':
                     order_info = self.exchange.create_market_buy_order(self.symbol, self.amount)
-                if self.side == 'sell':
+                elif self.side == 'sell':
                     order_info = self.exchange.create_market_sell_order(self.symbol, self.amount)
             # Otherwise, include the price in the order.
-            if self.order_type == 'limit':
+            elif self.order_type == 'limit':
                 if self.side == 'buy':
                     order_info = self.exchange.create_limit_buy_order(self.symbol, self.amount, self.price)
-                if self.side == 'sell':
+                elif self.side == 'sell':
                     order_info = self.exchange.create_limit_sell_order(self.symbol, self.amount, self.price)
             # Save the order ID returned from placing the order.
             self.id = order_info['id']
@@ -166,12 +166,12 @@ class Market(gym.Env):
 
         # Set the goals.
         ## What multiplier should be considered 'success'?
-        self.success_metric = 1.05*self.starting_BTC
+        self.success_metric = 1.01*self.starting_BTC
         ## What multiplier should be considered 'failure'?
-        self.failure_metric = 0.5*self.starting_BTC
+        self.failure_metric = 0.8*self.starting_BTC
 
         # Set the action space. This is defined by the OrderSpace object.
-        self.action_space = OrderSpace(max_amount=self.starting_BTC)
+        self.action_space = OrderSpace()
 
         # Set the observation space. This is defined by the MarketDataSpace object.
         self.observation_space = MarketDataSpace()
@@ -235,7 +235,16 @@ class Market(gym.Env):
         #assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
 
         ## It should come in the format [place_order, order_type, side, amount, price].
-        place_order, order_type, side, amount, price = action
+        place_order, order_type, side, amount_proportion, price_percentage = action
+
+        ## Determine the price for the order using the bid-ask spread and the price percentage.
+        if side == 'buy':
+            price = price_percentage*ask
+        elif side == 'sell':
+            price = price_percentage*bid
+
+        ## Determine the amount for the order using the balance and the proportion.
+        amount = amount_proportion*(self.previous_balance['BTC']['total']/price)
 
         ## Create an Order object from the action.
         order = Order(self.exchange, self.symbol, place_order, order_type, side, amount, price)
