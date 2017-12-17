@@ -239,9 +239,9 @@ class Market(gym.Env):
 
         ## Determine the price for the order using the bid-ask spread and the price percentage.
         if side == 'buy':
-            price = price_percentage*ask
+            price = ask*(1 + price_percentage)
         elif side == 'sell':
-            price = price_percentage*bid
+            price = bid*(1 + price_percentage)
 
         ## Determine the amount for the order using the balance and the proportion.
         amount = amount_proportion*(self.previous_balance['BTC']['total']/price)
