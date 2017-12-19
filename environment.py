@@ -166,9 +166,9 @@ class Market(gym.Env):
 
         # Set the goals.
         ## What multiplier should be considered 'success'?
-        self.success_metric = 1.01*self.starting_BTC
+        self.success_metric = 1.02*self.starting_BTC
         ## What multiplier should be considered 'failure'?
-        self.failure_metric = 0.8*self.starting_BTC
+        self.failure_metric = 0.5*self.starting_BTC
 
         # Set the action space. This is defined by the OrderSpace object.
         self.action_space = OrderSpace()
@@ -230,6 +230,9 @@ class Market(gym.Env):
             info (dict): contains auxiliary diagnostic information (helpful for debugging, and sometimes learning)
         """
 
+        # Observe the state of the environment.
+        self.state, bid, ask, spread = self._observe()
+
         # Process the action.
         ## Ensure it's a valid action.
         #assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
@@ -252,7 +255,7 @@ class Market(gym.Env):
         ## Place the order.
         order_id = order.place()
 
-        # Observe the state of the environment.
+        # Observe the state of the environment again.
         self.state, bid, ask, spread = self._observe()
 
         # Calculate the reward.
