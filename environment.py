@@ -112,12 +112,18 @@ class Order(object):
                     order_info = self.exchange.create_market_buy_order(self.symbol, self.amount)
                 elif self.side == 'sell':
                     order_info = self.exchange.create_market_sell_order(self.symbol, self.amount)
+                else:
+                    raise ValueError
             # Otherwise, include the price in the order.
             elif self.order_type == 'limit':
                 if self.side == 'buy':
                     order_info = self.exchange.create_limit_buy_order(self.symbol, self.amount, self.price)
                 elif self.side == 'sell':
                     order_info = self.exchange.create_limit_sell_order(self.symbol, self.amount, self.price)
+                else:
+                    raise ValueError
+            else:
+                raise ValueError
             # Save the order ID returned from placing the order.
             self.id = order_info['id']
         # If place_order is false, return None for the order ID.
@@ -245,6 +251,8 @@ class Market(gym.Env):
             price = ask*(1 + price_percentage)
         elif side == 'sell':
             price = bid*(1 + price_percentage)
+        else:
+            raise ValueError
 
         ## Determine the amount for the order using the balance and the proportion.
         amount = amount_proportion*(self.previous_balance['BTC']['total']/price)
