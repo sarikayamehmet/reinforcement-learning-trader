@@ -27,7 +27,7 @@ class OrderSpace(gym.Space):
         self.place_order = np.random.choice([True, False])
         self.order_type = np.random.choice(['market', 'limit'])
         self.side = np.random.choice(['buy', 'sell'])
-        self.amount_proportion = np.random.uniform(low=0.0, high=1.0)
+        self.amount_proportion = 1-np.random.random_sample()
         self.price_percentage = self.side_sign[self.side]*(1-np.random.random_sample())
 
         return [self.place_order, self.order_type, self.side, self.amount_proportion, self.price_percentage]
@@ -37,7 +37,19 @@ class OrderSpace(gym.Space):
         Return boolean specifying if x is a valid
         member of this space
         """
-        raise NotImplementedError
+        place_order, order_type, side, amount_proportion, price_percentage = x
+
+        place_order_valid = isinstance(place_order, bool)
+        order_type_valid = order_type in {'market', 'limit'}
+        side_valid = side in {'buy', 'sell'}
+        amount_proportion_valid = (0 < amount_proportion <= 1)
+        price_percentage_valid = (-1 <= price_percentage <= 1)
+
+        return (place_order_valid and
+                order_type_valid and
+                side_valid and
+                amount_proportion_valid and
+                price_percentage_valid)
 
     def to_jsonable(self, sample_n):
         """Convert a batch of samples from this space to a JSONable data type."""
@@ -255,7 +267,7 @@ class Market(gym.Env):
 
         # Process the action.
         ## Ensure it's a valid action.
-        #assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
+        assert self.action_space.contains(action), "invalid action: %r" % action
 
         ## Create an Order object from the action.
         order = Order(self.exchange, self.symbol, bid, ask, action)
