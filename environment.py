@@ -91,15 +91,29 @@ class Order(object):
     """
     An object encapsulating an order.
     """
-    def __init__(self, exchange, symbol, place_order, order_type, side, amount, price):
+    def __init__(self, exchange, symbol, bid, ask, action):
         # Set the attributes of the order.
         self.exchange = exchange
         self.symbol = symbol
-        self.place_order = place_order
-        self.order_type = order_type
-        self.side = side
-        self.amount = amount
-        self.price = price
+        self.bid = bid
+        self.ask = ask
+        self.action = action
+
+        # Process the action.
+        ## It should come in the format [place_order, order_type, side, amount_proportion, price_percentage].
+        self.place_order, self.order_type, self.side, amount_proportion, price_percentage = action
+
+        ## Determine the price for the order using the bid-ask spread and the price percentage.
+        if self.side == 'buy':
+            self.price = ask * (1 + price_percentage)
+        elif self.side == 'sell':
+            self.price = bid * (1 + price_percentage)
+        else:
+            raise ValueError
+
+        ## Determine the amount for the order using the balance and the proportion.
+        self.amount = amount_proportion * (self.previous_balance['BTC']['total'] / self.price)
+
         # Initialize the order ID to None.
         self.id = None
 
@@ -243,22 +257,8 @@ class Market(gym.Env):
         ## Ensure it's a valid action.
         #assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
 
-        ## It should come in the format [place_order, order_type, side, amount, price].
-        place_order, order_type, side, amount_proportion, price_percentage = action
-
-        ## Determine the price for the order using the bid-ask spread and the price percentage.
-        if side == 'buy':
-            price = ask*(1 + price_percentage)
-        elif side == 'sell':
-            price = bid*(1 + price_percentage)
-        else:
-            raise ValueError
-
-        ## Determine the amount for the order using the balance and the proportion.
-        amount = amount_proportion*(self.previous_balance['BTC']['total']/price)
-
         ## Create an Order object from the action.
-        order = Order(self.exchange, self.symbol, place_order, order_type, side, amount, price)
+        order = Order(self.exchange, self.symbol, bid, ask, action)
 
         ## Place the order.
         order_id = order.place()
