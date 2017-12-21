@@ -123,8 +123,8 @@ class Order(object):
         else:
             raise ValueError
 
-        ## Determine the amount for the order using the balance and the proportion.
-        self.amount = amount_proportion * (self.previous_balance['BTC']['total'] / self.price)
+        ## Determine the amount for the order using the available balance and the proportion.
+        self.amount = amount_proportion * (exchange.fetch_balance()['BTC']['free'] / self.price)
 
         # Initialize the order ID to None.
         self.id = None
