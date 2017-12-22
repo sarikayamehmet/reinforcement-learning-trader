@@ -2,6 +2,7 @@ import gym
 from gym.utils import seeding
 
 import numpy as np
+from config import logger
 
 
 class OrderSpace(gym.Space):
@@ -27,7 +28,7 @@ class OrderSpace(gym.Space):
         self.place_order = np.random.choice([True, False])
         self.order_type = np.random.choice(['market', 'limit'])
         self.side = np.random.choice(['buy', 'sell'])
-        self.amount_proportion = np.random.uniform(low=0.0, high=1.0)
+        self.amount_proportion = 1-np.random.random_sample()
         self.price_percentage = self.side_sign[self.side]*(1-np.random.random_sample())
 
         return [self.place_order, self.order_type, self.side, self.amount_proportion, self.price_percentage]
@@ -37,7 +38,19 @@ class OrderSpace(gym.Space):
         Return boolean specifying if x is a valid
         member of this space
         """
-        raise NotImplementedError
+        place_order, order_type, side, amount_proportion, price_percentage = x
+
+        place_order_valid = place_order in {True, False}
+        order_type_valid = order_type in {'market', 'limit'}
+        side_valid = side in {'buy', 'sell'}
+        amount_proportion_valid = (0 < amount_proportion <= 1)
+        price_percentage_valid = (-1 <= price_percentage <= 1)
+
+        return (place_order_valid and
+                order_type_valid and
+                side_valid and
+                amount_proportion_valid and
+                price_percentage_valid)
 
     def to_jsonable(self, sample_n):
         """Convert a batch of samples from this space to a JSONable data type."""
@@ -91,15 +104,33 @@ class Order(object):
     """
     An object encapsulating an order.
     """
-    def __init__(self, exchange, symbol, place_order, order_type, side, amount, price):
+    def __init__(self, exchange, symbol, bid, ask, action):
         # Set the attributes of the order.
         self.exchange = exchange
         self.symbol = symbol
-        self.place_order = place_order
-        self.order_type = order_type
-        self.side = side
-        self.amount = amount
-        self.price = price
+        self.bid = bid
+        self.ask = ask
+        self.action = action
+
+        # Process the action.
+        ## It should come in the format [place_order, order_type, side, amount_proportion, price_percentage].
+        self.place_order, self.order_type, self.side, amount_proportion, price_percentage = action
+
+        ## Determine the price for the order using the bid-ask spread and the price percentage.
+        if self.side == 'buy':
+            self.price = ask * (1 + price_percentage)
+        elif self.side == 'sell':
+            self.price = bid * (1 + price_percentage)
+        else:
+            raise ValueError
+
+        ## Determine the amount for the order using the available balance and the proportion.
+        try:
+            self.amount = amount_proportion * (exchange.fetch_balance()['BTC']['free'] / self.price)
+        except TypeError as amount_calc_error:
+            logger.warn("Error calculating order amount: " + amount_calc_error.message)
+            self.amount = 0.0
+
         # Initialize the order ID to None.
         self.id = None
 
@@ -241,24 +272,10 @@ class Market(gym.Env):
 
         # Process the action.
         ## Ensure it's a valid action.
-        #assert self.action_space.contains(action), "%r (%s) invalid " % (action,type(action))
-
-        ## It should come in the format [place_order, order_type, side, amount, price].
-        place_order, order_type, side, amount_proportion, price_percentage = action
-
-        ## Determine the price for the order using the bid-ask spread and the price percentage.
-        if side == 'buy':
-            price = ask*(1 + price_percentage)
-        elif side == 'sell':
-            price = bid*(1 + price_percentage)
-        else:
-            raise ValueError
-
-        ## Determine the amount for the order using the balance and the proportion.
-        amount = amount_proportion*(self.previous_balance['BTC']['total']/price)
+        assert self.action_space.contains(action), "invalid action: %r" % action
 
         ## Create an Order object from the action.
-        order = Order(self.exchange, self.symbol, place_order, order_type, side, amount, price)
+        order = Order(self.exchange, self.symbol, bid, ask, action)
 
         ## Place the order.
         order_id = order.place()
