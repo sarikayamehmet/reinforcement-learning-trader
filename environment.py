@@ -2,6 +2,7 @@ import gym
 from gym.utils import seeding
 
 import numpy as np
+from config import logger
 
 
 class OrderSpace(gym.Space):
@@ -39,7 +40,7 @@ class OrderSpace(gym.Space):
         """
         place_order, order_type, side, amount_proportion, price_percentage = x
 
-        place_order_valid = isinstance(place_order, bool)
+        place_order_valid = place_order in {True, False}
         order_type_valid = order_type in {'market', 'limit'}
         side_valid = side in {'buy', 'sell'}
         amount_proportion_valid = (0 < amount_proportion <= 1)
@@ -124,7 +125,11 @@ class Order(object):
             raise ValueError
 
         ## Determine the amount for the order using the available balance and the proportion.
-        self.amount = amount_proportion * (exchange.fetch_balance()['BTC']['free'] / self.price)
+        try:
+            self.amount = amount_proportion * (exchange.fetch_balance()['BTC']['free'] / self.price)
+        except TypeError as amount_calc_error:
+            logger.warn("Error calculating order amount: " + amount_calc_error.message)
+            self.amount = 0.0
 
         # Initialize the order ID to None.
         self.id = None
