@@ -334,6 +334,9 @@ class Market(gym.Env):
         Returns: observation (object): the initial observation of the space. This
         is an array representing the order book.
         """
+        for order in self.exchange.fetch_open_orders():
+            self.exchange.cancel_order(order['id'])
+
         self.state = self._observe()[0]
         return self.state
 
