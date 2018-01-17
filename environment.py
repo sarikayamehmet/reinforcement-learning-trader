@@ -376,10 +376,19 @@ class Market(gym.Env):
                 else:
                     super(MyEnv, self).render(mode=mode) # just raise an exception
         """
+        # Calculate the percentage change to display.
+        if self.starting_BTC == 0:
+            change = 0.0
+        elif self.previous_balance['BTC']['total'] is None:
+            change = 0.0
+        else:
+            change = (self.previous_balance['BTC']['total'] / self.starting_BTC) - 1.0
+
+        # Display the percentage change according to the render mode selected.
         if mode == 'ansi':
-            raise NotImplementedError
+            return str(change) + "%%"
         elif mode == 'human':
-            raise NotImplementedError
+            logger.info(str(change) + "%%")
         else:
             super(Market, self).render(mode=mode)  # raise an exception
 
