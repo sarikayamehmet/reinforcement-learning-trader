@@ -9,7 +9,7 @@ class OrderSpace(gym.Space):
     """
     Action space for the Market environment.
 
-    - place order (binary): place order or do nothing
+    - action type (ternary): 'order', 'cancel', or 'do_nothing'
     - order type (binary): 'market' or 'limit'
     - side (binary): 'buy' or 'sell'
     - amount_proportion (float): proportion of holdings to trade (could be in base or quote, check the API)
@@ -25,28 +25,28 @@ class OrderSpace(gym.Space):
         """
         Uniformly randomly sample a random element of this space
         """
-        self.place_order = np.random.choice([True, False])
+        self.action_type = np.random.choice(['order', 'cancel', 'do_nothing'])
         self.order_type = np.random.choice(['market', 'limit'])
         self.side = np.random.choice(['buy', 'sell'])
-        self.amount_proportion = 1-np.random.random_sample()
-        self.price_percentage = self.side_sign[self.side]*(1-np.random.random_sample())
+        self.amount_proportion = 1 - np.random.random_sample()
+        self.price_percentage = self.side_sign[self.side] * (1 - np.random.random_sample())
 
-        return [self.place_order, self.order_type, self.side, self.amount_proportion, self.price_percentage]
+        return [self.action_type, self.order_type, self.side, self.amount_proportion, self.price_percentage]
 
     def contains(self, x):
         """
         Return boolean specifying if x is a valid
         member of this space
         """
-        place_order, order_type, side, amount_proportion, price_percentage = x
+        action_type, order_type, side, amount_proportion, price_percentage = x
 
-        place_order_valid = place_order in {True, False}
+        action_type_valid = action_type in {'order', 'cancel', 'do_nothing'}
         order_type_valid = order_type in {'market', 'limit'}
         side_valid = side in {'buy', 'sell'}
         amount_proportion_valid = (0 < amount_proportion <= 1)
         price_percentage_valid = (-1 <= price_percentage <= 1)
 
-        return (place_order_valid and
+        return (action_type_valid and
                 order_type_valid and
                 side_valid and
                 amount_proportion_valid and
@@ -104,19 +104,17 @@ class Order(object):
     """
     An object encapsulating an order.
     """
-    def __init__(self, exchange, symbol, bid, ask, action):
+
+    def __init__(self, exchange, symbol, bid, ask, order_type, side, amount_proportion, price_percentage):
         # Set the attributes of the order.
         self.exchange = exchange
         self.symbol = symbol
         self.bid = bid
         self.ask = ask
-        self.action = action
+        self.order_type = order_type
+        self.side = side
 
-        # Process the action.
-        ## It should come in the format [place_order, order_type, side, amount_proportion, price_percentage].
-        self.place_order, self.order_type, self.side, amount_proportion, price_percentage = action
-
-        ## Determine the price for the order using the bid-ask spread and the price percentage.
+        # Determine the price for the order using the bid-ask spread and the price percentage.
         if self.side == 'buy':
             self.price = ask * (1 + price_percentage)
         elif self.side == 'sell':
@@ -124,7 +122,7 @@ class Order(object):
         else:
             raise ValueError
 
-        ## Determine the amount for the order using the available balance and the proportion.
+        # Determine the amount for the order using the available balance and the proportion.
         try:
             self.amount = amount_proportion * (exchange.fetch_balance()['BTC']['free'] / self.price)
         except TypeError as amount_calc_error:
@@ -135,31 +133,26 @@ class Order(object):
         self.id = None
 
     def place(self):
-        # If the place_order boolean is true, place an order on the exchange.
-        if self.place_order:
-            # If it's a market order, create an order without specifying a price.
-            if self.order_type == 'market':
-                if self.side == 'buy':
-                    order_info = self.exchange.create_market_buy_order(self.symbol, self.amount)
-                elif self.side == 'sell':
-                    order_info = self.exchange.create_market_sell_order(self.symbol, self.amount)
-                else:
-                    raise ValueError
-            # Otherwise, include the price in the order.
-            elif self.order_type == 'limit':
-                if self.side == 'buy':
-                    order_info = self.exchange.create_limit_buy_order(self.symbol, self.amount, self.price)
-                elif self.side == 'sell':
-                    order_info = self.exchange.create_limit_sell_order(self.symbol, self.amount, self.price)
-                else:
-                    raise ValueError
+        # If it's a market order, create an order without specifying a price.
+        if self.order_type == 'market':
+            if self.side == 'buy':
+                order_info = self.exchange.create_market_buy_order(self.symbol, self.amount)
+            elif self.side == 'sell':
+                order_info = self.exchange.create_market_sell_order(self.symbol, self.amount)
             else:
                 raise ValueError
-            # Save the order ID returned from placing the order.
-            self.id = order_info['id']
-        # If place_order is false, return None for the order ID.
+        # Otherwise, include the price in the order.
+        elif self.order_type == 'limit':
+            if self.side == 'buy':
+                order_info = self.exchange.create_limit_buy_order(self.symbol, self.amount, self.price)
+            elif self.side == 'sell':
+                order_info = self.exchange.create_limit_sell_order(self.symbol, self.amount, self.price)
+            else:
+                raise ValueError
         else:
-            self.id = None
+            raise ValueError
+        # Save the order ID returned from placing the order.
+        self.id = order_info['id']
         # Return the order ID.
         return self.id
 
@@ -170,7 +163,8 @@ class Order(object):
         return self.id
 
     def __repr__(self):
-        return
+        return "<" + self.id + ": " + self.order_type + " " + self.side + " " + str(self.amount) \
+               + " " + self.symbol + " at " + str(self.price) + ">"
 
 
 class Market(gym.Env):
@@ -202,10 +196,10 @@ class Market(gym.Env):
             self.starting_BTC = 0
 
         # Set the goals.
-        ## What multiplier should be considered 'success'?
-        self.success_metric = 1.02*self.starting_BTC
-        ## What multiplier should be considered 'failure'?
-        self.failure_metric = 0.5*self.starting_BTC
+        # What multiplier should be considered 'success'?
+        self.success_metric = 1.02 * self.starting_BTC
+        # What multiplier should be considered 'failure'?
+        self.failure_metric = 0.5 * self.starting_BTC
 
         # Set the action space. This is defined by the OrderSpace object.
         self.action_space = OrderSpace()
@@ -233,7 +227,7 @@ class Market(gym.Env):
         asks = np.array(order_book['asks'])
 
         # Label the bids with -1 and the asks with 1.
-        bid_sign = -1*np.ones((len(order_book['bids']), 1))
+        bid_sign = -1 * np.ones((len(order_book['bids']), 1))
         ask_sign = np.ones((len(order_book['asks']), 1))
 
         # Concatenate the bids and asks with their respective labels.
@@ -271,55 +265,65 @@ class Market(gym.Env):
         self.state, bid, ask, spread = self._observe()
 
         # Process the action.
-        ## Ensure it's a valid action.
+        # Ensure it's a valid action.
         assert self.action_space.contains(action), "invalid action: %r" % action
 
-        ## Create an Order object from the action.
-        order = Order(self.exchange, self.symbol, bid, ask, action)
+        # It should come in the format [action_type, order_type, side, amount_proportion, price_percentage].
+        action_type, order_type, side, amount_proportion, price_percentage = action
 
-        ## Place the order.
-        order_id = order.place()
+        # Check the action type.
+        if action_type == 'market':
+            # Create an Order object from the action.
+            order = Order(self.exchange, self.symbol, bid, ask, order_type, side, amount_proportion, price_percentage)
+            # Place the order.
+            order_id = order.place()
+        elif action_type == 'cancel':
+            # Cancel all open orders.
+            for order in self.exchange.fetch_open_orders():
+                self.exchange.cancel_order(order['id'])
+            order_id = None
+        elif action_type == 'do_nothing':
+            order_id = None
+        else:
+            raise ValueError
 
         # Observe the state of the environment again.
         self.state, bid, ask, spread = self._observe()
 
         # Calculate the reward.
-        ## Fetch the current balance of BTC.
+        # Fetch the current balance of BTC.
         current_balance = self.exchange.fetch_balance()
         current_BTC = current_balance['BTC']['total']
-        ### If there's no balance, replace None with 0.
+        # If there's no balance, replace None with 0.
         if current_BTC is None:
             current_BTC = 0
 
-        ## Get the balance of BTC before this timestep.
+        # Get the balance of BTC before this timestep.
         previous_BTC = self.previous_balance['BTC']['total']
-        ### If there's no balance, replace None with 0.
+        # If there's no balance, replace None with 0.
         if previous_BTC is None:
             previous_BTC = 0
 
-        ## If the previous BTC balance was 0, the reward is the current BTC balance.
+        # If the previous BTC balance was 0, the reward is the current BTC balance.
         if previous_BTC == 0:
             reward = current_BTC
-        ## Else, calculate the reward by finding the percent change in BTC balance during this timestep.
+        # Else, calculate the reward by finding the percent change in BTC balance during this timestep.
         else:
-            reward = (current_BTC - previous_BTC)/previous_BTC
+            reward = (current_BTC - previous_BTC) / previous_BTC
 
         # Determine when the episode ends.
         done = False
-        ## If the BTC balance drops to the failure metric, end the episode and apply a penalty.
+        # If the BTC balance drops to the failure metric, end the episode and apply a penalty.
         if current_BTC <= self.failure_metric:
             done = True
             reward -= 1
-        ## If the BTC balance rises to the success metric, end the episode and apply a bonus.
+        # If the BTC balance rises to the success metric, end the episode and apply a bonus.
         if current_BTC >= self.success_metric:
             done = True
             reward += 1
 
         # Save diagnostic information for debugging.
-        info = {}
-        info['order_id'] = order_id
-        info['previous_BTC'] = previous_BTC
-        info['current_BTC'] = current_BTC
+        info = {'order_id': order_id, 'previous_BTC': previous_BTC, 'current_BTC': current_BTC}
 
         # Save the current balance for the next step.
         self.previous_balance = current_balance
