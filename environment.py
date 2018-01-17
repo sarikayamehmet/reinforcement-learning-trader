@@ -190,7 +190,10 @@ class Market(gym.Env):
         self.symbol = symbol
 
         # Save the starting BTC balance.
-        self.starting_BTC = self.previous_balance['BTC']['total']
+        try:
+            self.starting_BTC = self.previous_balance['BTC']['total']
+        except KeyError:
+            self.starting_BTC = 0
         # If there's no balance, replace None with 0.
         if self.starting_BTC is None:
             self.starting_BTC = 0
@@ -377,12 +380,10 @@ class Market(gym.Env):
                     super(MyEnv, self).render(mode=mode) # just raise an exception
         """
         # Calculate the percentage change to display.
-        if self.starting_BTC == 0:
-            change = 0.0
-        elif self.previous_balance['BTC']['total'] is None:
-            change = 0.0
-        else:
+        try:
             change = (self.previous_balance['BTC']['total'] / self.starting_BTC) - 1.0
+        except:
+            change = 0.0
 
         # Display the percentage change according to the render mode selected.
         if mode == 'ansi':
