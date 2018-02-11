@@ -15,6 +15,8 @@ Start with a small-cap, low-volume altcoin market. First, let it learn to “buy
 
 ## Resources
 
+http://www.wildml.com/2018/02/introduction-to-learning-to-trade-with-reinforcement-learning/
+
 ### trading
 - https://github.com/kroitor/ccxt
 - https://github.com/kroitor/ccxt/wiki/Manual
