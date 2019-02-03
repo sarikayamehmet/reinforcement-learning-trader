@@ -31,11 +31,6 @@ http://www.wildml.com/2018/02/introduction-to-learning-to-trade-with-reinforceme
 - https://github.com/openai/gym/tree/master/gym/envs
 - https://github.com/openai/gym/wiki/Environments
 
-### project structure
-- http://docs.python-guide.org/en/latest/writing/structure/
-- http://docs.python-guide.org/en/latest/dev/virtualenvs/
-- https://www.docker.com/what-docker
-
 ## References
 
 ### must-read
